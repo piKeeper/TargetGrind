@@ -109,10 +109,14 @@ local function teleportAndClick(box)
 	if not hrp or not box or not box.Parent then return end
 	local targetHead = box:FindFirstChild("Head")
 	if not targetHead then return end
-	
+
+	local originalCFrame = hrp.CFrame
 	local targetPos = targetHead.Position + Vector3.new(0, 10, 0)
-	hrp.CFrame = CFrame.new(targetPos)
-	
+
+	-- Preserve original rotation so character stays upright
+	local rx, ry, rz = originalCFrame:ToEulerAnglesYXZ()
+	hrp.CFrame = CFrame.new(targetPos) * CFrame.Angles(rx, ry, rz)
+
 	activateLoopRunning = true
 	while box.Parent and isOn and activateLoopRunning do
 		simulateClick()
@@ -140,7 +144,7 @@ end
 toggleBtn.MouseButton1Click:Connect(function()
 	isOn = not isOn
 	updateToggleButton()
-	
+
 	if isOn then
 		hrp.Anchored = true
 		task.spawn(startTeleportLoop)
