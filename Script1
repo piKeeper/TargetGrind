@@ -120,11 +120,11 @@ end)
 
 -- Reset loop every 300 seconds (if enabled)
 task.spawn(function()
-	player:LoadCharacter()
+	player.Character.Humanoid.Health = 0
 	while true do
 		task.wait(30)
 		if resetEnabled then
-			player:LoadCharacter()
+			player.Character.Humanoid.Health = 0
 		end
 	end
 end)
