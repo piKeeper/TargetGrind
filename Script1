@@ -83,6 +83,7 @@ local closeBtn = createDraggableButton(
 
 local isOn = false
 local loopRunning = false
+local activateLoopRunning = false
 
 local function updateToggleButton()
 	if isOn then
@@ -117,10 +118,12 @@ local function teleportAndClick(box)
 	local lookDownCFrame = CFrame.new(targetPos, targetPos + Vector3.new(0, -1, 0))
 	hrp.CFrame = lookDownCFrame
 	
-	while box.Parent and isOn do
+	activateLoopRunning = true
+	while box.Parent and isOn and activateLoopRunning do
 		simulateClick()
 		task.wait(0.2)
 	end
+	activateLoopRunning = false
 end
 
 local function startTeleportLoop()
@@ -148,6 +151,7 @@ toggleBtn.MouseButton1Click:Connect(function()
 		task.spawn(startTeleportLoop)
 	else
 		loopRunning = false
+		activateLoopRunning = false  -- stops tool:Activate()
 		hrp.Anchored = false
 	end
 end)
