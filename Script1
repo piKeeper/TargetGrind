@@ -1,19 +1,13 @@
 local player = game.Players.LocalPlayer
 local uis = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 
-local function getHRP()
-	local char = player.Character or player.CharacterAdded:Wait()
-	return char:WaitForChild("HumanoidRootPart")
-end
-
--- Create ScreenGui
+-- Create GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "SimpleToggleGui"
+gui.Name = "TeleportGui"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Function to create draggable button
+-- Function to create a draggable button
 local function createDraggableButton(name, size, pos, text, bgColor)
 	local btn = Instance.new("TextButton")
 	btn.Name = name
@@ -26,41 +20,7 @@ local function createDraggableButton(name, size, pos, text, bgColor)
 	btn.BackgroundColor3 = bgColor
 	btn.Parent = gui
 	btn.Active = true
-
-	local dragging, dragInput, dragStart, startPos
-
-	local function update(input)
-		local delta = input.Position - dragStart
-		btn.Position = UDim2.new(
-			startPos.X.Scale, startPos.X.Offset + delta.X,
-			startPos.Y.Scale, startPos.Y.Offset + delta.Y
-		)
-	end
-
-	btn.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
-			dragStart = input.Position
-			startPos = btn.Position
-			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then
-					dragging = false
-				end
-			end)
-		end
-	end)
-
-	btn.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			dragInput = input
-		end
-	end)
-
-	uis.InputChanged:Connect(function(input)
-		if input == dragInput and dragging then
-			update(input)
-		end
-	end)
+	btn.Draggable = true  -- Just use Draggable for simplicity
 
 	return btn
 end
@@ -68,7 +28,7 @@ end
 local toggleBtn = createDraggableButton(
 	"ToggleButton",
 	UDim2.new(0, 120, 0, 50),
-	UDim2.new(0.1, 0, 0.1, 0),
+	UDim2.new(0.05, 0, 0.1, 0),
 	"OFF",
 	Color3.fromRGB(200, 0, 0)
 )
@@ -76,14 +36,13 @@ local toggleBtn = createDraggableButton(
 local closeBtn = createDraggableButton(
 	"CloseButton",
 	UDim2.new(0, 80, 0, 50),
-	UDim2.new(0.1, 130, 0.1, 0),
+	UDim2.new(0.05, 130, 0.1, 0),
 	"Close",
 	Color3.fromRGB(80, 80, 80)
 )
 
 local isOn = false
 local teleportLoopRunning = false
-local hrp = getHRP()
 
 local function updateToggleButton()
 	if isOn then
@@ -95,42 +54,40 @@ local function updateToggleButton()
 	end
 end
 
+-- Teleport loop
 local function teleportLoop()
 	teleportLoopRunning = true
 	while isOn and teleportLoopRunning do
 		local targetBoxesFolder = workspace:FindFirstChild("TargetBoxes")
 		if targetBoxesFolder then
-			-- Gather all current TargetBox children
 			local targets = {}
 			for _, targetBox in ipairs(targetBoxesFolder:GetChildren()) do
-				if targetBox.Name == "TargetBox" and targetBox.Parent then
+				if targetBox:IsA("Model") and targetBox.Name == "TargetBox" then
 					table.insert(targets, targetBox)
 				end
 			end
 
 			if #targets > 0 then
-				-- Pick a random TargetBox
 				local randomTarget = targets[math.random(1, #targets)]
 				local head = randomTarget:FindFirstChild("Head")
+				local character = player.Character or player.CharacterAdded:Wait()
+				local hrp = character:FindFirstChild("HumanoidRootPart")
+
 				if head and hrp then
 					local targetPos = head.Position + Vector3.new(0, 10, 0)
 					hrp.CFrame = CFrame.new(targetPos)
 				end
 			end
 		end
-
-		-- Wait before next teleport attempt
 		task.wait(0.5)
 	end
 	teleportLoopRunning = false
 end
 
+-- Toggle button logic
 toggleBtn.MouseButton1Click:Connect(function()
 	isOn = not isOn
 	updateToggleButton()
-
-	-- Refresh HumanoidRootPart each toggle
-	hrp = getHRP()
 
 	if isOn then
 		task.spawn(teleportLoop)
@@ -139,6 +96,7 @@ toggleBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
+-- Close button
 closeBtn.MouseButton1Click:Connect(function()
 	gui:Destroy()
 end)
