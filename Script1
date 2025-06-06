@@ -1,8 +1,11 @@
 local player = game.Players.LocalPlayer
 local uis = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
+local function getHRP()
+	local char = player.Character or player.CharacterAdded:Wait()
+	return char:WaitForChild("HumanoidRootPart")
+end
 
 -- Create ScreenGui
 local gui = Instance.new("ScreenGui")
@@ -80,6 +83,7 @@ local closeBtn = createDraggableButton(
 
 local isOn = false
 local teleportLoopRunning = false
+local hrp = getHRP()
 
 local function updateToggleButton()
 	if isOn then
@@ -96,20 +100,27 @@ local function teleportLoop()
 	while isOn and teleportLoopRunning do
 		local targetBoxesFolder = workspace:FindFirstChild("TargetBoxes")
 		if targetBoxesFolder then
+			-- Gather all current TargetBox children
+			local targets = {}
 			for _, targetBox in ipairs(targetBoxesFolder:GetChildren()) do
 				if targetBox.Name == "TargetBox" and targetBox.Parent then
-					local head = targetBox:FindFirstChild("Head")
-					if head and hrp then
-						local targetPos = head.Position + Vector3.new(0, 10, 0)
-						hrp.CFrame = CFrame.new(targetPos)
-					end
-					if not isOn then break end -- Stop if toggled off during loop
-					task.wait(0.5)
+					table.insert(targets, targetBox)
 				end
 			end
-		else
-			task.wait(0.5)
+
+			if #targets > 0 then
+				-- Pick a random TargetBox
+				local randomTarget = targets[math.random(1, #targets)]
+				local head = randomTarget:FindFirstChild("Head")
+				if head and hrp then
+					local targetPos = head.Position + Vector3.new(0, 10, 0)
+					hrp.CFrame = CFrame.new(targetPos)
+				end
+			end
 		end
+
+		-- Wait before next teleport attempt
+		task.wait(0.5)
 	end
 	teleportLoopRunning = false
 end
@@ -117,6 +128,9 @@ end
 toggleBtn.MouseButton1Click:Connect(function()
 	isOn = not isOn
 	updateToggleButton()
+
+	-- Refresh HumanoidRootPart each toggle
+	hrp = getHRP()
 
 	if isOn then
 		task.spawn(teleportLoop)
