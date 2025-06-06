@@ -119,11 +119,9 @@ toggleBtn.MouseButton1Click:Connect(function()
 	updateToggleButton()
 
 	if isOn then
-		hrp.Anchored = true
 		task.spawn(teleportLoop)
 	else
 		teleportLoopRunning = false
-		hrp.Anchored = false
 	end
 end)
 
