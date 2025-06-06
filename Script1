@@ -1,0 +1,118 @@
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local uis = game:GetService("UserInputService")
+
+-- GUI Setup
+local gui = Instance.new("ScreenGui")
+gui.Name = "ToggleGui"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton")
+button.Name = "ToggleButton"
+button.Size = UDim2.new(0, 100, 0, 40)
+button.Position = UDim2.new(0.1, 0, 0.1, 0)
+button.TextSize = 20
+button.Font = Enum.Font.SourceSansBold
+button.TextColor3 = Color3.new(1, 1, 1)
+button.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+button.Text = "OFF"
+button.Parent = gui
+button.Active = true
+
+-- Dragging
+local dragging = false
+local dragStart, startPos
+
+button.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = button.Position
+	end
+end)
+
+button.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+		local delta = input.Position - dragStart
+		button.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+button.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+-- Toggle Logic
+local isOn = false
+local loopRunning = false
+
+local function updateButton()
+	if isOn then
+		button.Text = "ON"
+		button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+	else
+		button.Text = "OFF"
+		button.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+	end
+end
+
+local function getEquippedTool()
+	local character = player.Character
+	if character then
+		return character:FindFirstChildOfClass("Tool")
+	end
+end
+
+-- Simulate clicks using tool:Activate()
+local function simulateClick()
+	local tool = getEquippedTool()
+	if tool then
+		tool:Activate()
+	end
+end
+
+-- Loop through TargetBoxes
+local function startTeleportLoop()
+	loopRunning = true
+	while isOn and loopRunning do
+		local boxesFolder = workspace:FindFirstChild("TargetBoxes")
+		if boxesFolder then
+			for _, box in ipairs(boxesFolder:GetChildren()) do
+				if box.Name == "TargetBox" and box:FindFirstChild("Head") then
+					-- Teleport player
+					hrp.CFrame = box.Head.CFrame
+
+					-- Click until box is destroyed or turned off
+					while box.Parent == boxesFolder and isOn do
+						simulateClick()
+						task.wait(0.2)
+					end
+				end
+			end
+		end
+		task.wait(0.5)
+	end
+end
+
+-- Button click
+button.MouseButton1Click:Connect(function()
+	isOn = not isOn
+	updateButton()
+
+	if isOn then
+		hrp.Anchored = true
+		startTeleportLoop()
+	else
+		loopRunning = false
+		hrp.Anchored = false
+	end
+end)
+
+updateButton()
