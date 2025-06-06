@@ -6,10 +6,11 @@ local hrp = char:WaitForChild("HumanoidRootPart")
 
 -- Create ScreenGui
 local gui = Instance.new("ScreenGui")
-gui.Name = "ToggleGui"
+gui.Name = "SimpleToggleGui"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
+-- Function to create draggable button
 local function createDraggableButton(name, size, pos, text, bgColor)
 	local btn = Instance.new("TextButton")
 	btn.Name = name
@@ -63,7 +64,7 @@ end
 
 local toggleBtn = createDraggableButton(
 	"ToggleButton",
-	UDim2.new(0, 100, 0, 40),
+	UDim2.new(0, 120, 0, 50),
 	UDim2.new(0.1, 0, 0.1, 0),
 	"OFF",
 	Color3.fromRGB(200, 0, 0)
@@ -71,15 +72,14 @@ local toggleBtn = createDraggableButton(
 
 local closeBtn = createDraggableButton(
 	"CloseButton",
-	UDim2.new(0, 60, 0, 40),
-	UDim2.new(0.1, 110, 0.1, 0),
+	UDim2.new(0, 80, 0, 50),
+	UDim2.new(0.1, 130, 0.1, 0),
 	"Close",
 	Color3.fromRGB(80, 80, 80)
 )
 
 local isOn = false
-local loopRunning = false
-local activateLoopRunning = false
+local teleportLoopRunning = false
 
 local function updateToggleButton()
 	if isOn then
@@ -91,54 +91,27 @@ local function updateToggleButton()
 	end
 end
 
-local function simulateClick()
-	-- Instead of tool:Activate(), fire the ShootButton's MouseButton1Click event
-	local blasterGui = player.PlayerGui:FindFirstChild("BlasterTouchGui")
-	if blasterGui then
-		local buttonsFolder = blasterGui:FindFirstChild("Buttons")
-		if buttonsFolder then
-			local shootBtn = buttonsFolder:FindFirstChild("ShootButton")
-			if shootBtn and shootBtn:IsA("GuiButton") then
-				shootBtn.MouseButton1Click:Fire()
-			end
-		end
-	end
-end
-
-local function teleportAndClick(box)
-	if not hrp or not box or not box.Parent then return end
-	local targetHead = box:FindFirstChild("Head")
-	if not targetHead then return end
-
-	local originalCFrame = hrp.CFrame
-	local targetPos = targetHead.Position + Vector3.new(0, 10, 0)
-
-	-- Preserve original rotation so character stays upright
-	local rx, ry, rz = originalCFrame:ToEulerAnglesYXZ()
-	hrp.CFrame = CFrame.new(targetPos) * CFrame.Angles(rx, ry, rz)
-
-	activateLoopRunning = true
-	while box.Parent and isOn and activateLoopRunning do
-		simulateClick()
-		task.wait(0.2)
-	end
-	activateLoopRunning = false
-end
-
-local function startTeleportLoop()
-	loopRunning = true
-	while isOn and loopRunning do
-		local boxesFolder = workspace:FindFirstChild("TargetBoxes")
-		if boxesFolder then
-			for _, box in ipairs(boxesFolder:GetChildren()) do
-				if box.Name == "TargetBox" then
-					teleportAndClick(box)
-					if not isOn then break end
+local function teleportLoop()
+	teleportLoopRunning = true
+	while isOn and teleportLoopRunning do
+		local targetBoxesFolder = workspace:FindFirstChild("TargetBoxes")
+		if targetBoxesFolder then
+			for _, targetBox in ipairs(targetBoxesFolder:GetChildren()) do
+				if targetBox.Name == "TargetBox" and targetBox.Parent then
+					local head = targetBox:FindFirstChild("Head")
+					if head and hrp then
+						local targetPos = head.Position + Vector3.new(0, 10, 0)
+						hrp.CFrame = CFrame.new(targetPos)
+					end
+					if not isOn then break end -- Stop if toggled off during loop
+					task.wait(0.5)
 				end
 			end
+		else
+			task.wait(0.5)
 		end
-		task.wait(0.5)
 	end
+	teleportLoopRunning = false
 end
 
 toggleBtn.MouseButton1Click:Connect(function()
@@ -147,10 +120,9 @@ toggleBtn.MouseButton1Click:Connect(function()
 
 	if isOn then
 		hrp.Anchored = true
-		task.spawn(startTeleportLoop)
+		task.spawn(teleportLoop)
 	else
-		loopRunning = false
-		activateLoopRunning = false  -- stops clicking
+		teleportLoopRunning = false
 		hrp.Anchored = false
 	end
 end)
