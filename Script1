@@ -1,6 +1,7 @@
 local player = game.Players.LocalPlayer
 local teleportLoopRunning = false
 local isOn = false
+local resetEnabled = true
 
 -- Create the main ScreenGui
 local gui = Instance.new("ScreenGui")
@@ -10,40 +11,52 @@ gui.Parent = player:WaitForChild("PlayerGui")
 
 -- Create the main Frame
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 70)
+frame.Size = UDim2.new(0, 260, 0, 90)
 frame.Position = UDim2.new(0, 100, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.Parent = gui
 
 -- Make the frame draggable
 local drag = Instance.new("UIDragDetector")
 drag.Parent = frame
 
--- Create ON/OFF button inside the frame
+-- ON/OFF Button
 local onButton = Instance.new("TextButton")
 onButton.Name = "OnButton"
-onButton.Size = UDim2.new(0, 100, 0, 50)
-onButton.Position = UDim2.new(0, 0, 0, 10)
+onButton.Size = UDim2.new(0, 80, 0, 50)
+onButton.Position = UDim2.new(0, 10, 0, 20)
 onButton.BackgroundColor3 = Color3.new(1, 0, 0)
 onButton.TextColor3 = Color3.new(1, 1, 1)
 onButton.Font = Enum.Font.GothamBold
-onButton.TextSize = 20
+onButton.TextSize = 18
 onButton.Text = "OFF"
 onButton.Parent = frame
 
--- Create CLOSE ("X") button inside the frame
+-- RESET Button
+local resetButton = Instance.new("TextButton")
+resetButton.Name = "ResetButton"
+resetButton.Size = UDim2.new(0, 120, 0, 50)
+resetButton.Position = UDim2.new(0, 100, 0, 20)
+resetButton.BackgroundColor3 = Color3.fromRGB(120, 0, 120)
+resetButton.TextColor3 = Color3.new(1, 1, 1)
+resetButton.Font = Enum.Font.GothamBold
+resetButton.TextSize = 16
+resetButton.Text = "Reset: ON"
+resetButton.Parent = frame
+
+-- CLOSE Button
 local closeButton = Instance.new("TextButton")
 closeButton.Name = "CloseButton"
-closeButton.Size = UDim2.new(0, 50, 0, 50)
-closeButton.Position = UDim2.new(0, 110, 0, 10)
-closeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-closeButton.TextColor3 = Color3.new(1, 0.3, 0.3)
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -35, 0, 5)
+closeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+closeButton.TextColor3 = Color3.fromRGB(255, 80, 80)
 closeButton.Font = Enum.Font.GothamBold
-closeButton.TextSize = 24
+closeButton.TextSize = 18
 closeButton.Text = "X"
 closeButton.Parent = frame
 
--- Toggle ON/OFF behavior
+-- ON button toggle
 onButton.MouseButton1Click:Connect(function()
 	isOn = not isOn
 	teleportLoopRunning = isOn
@@ -57,7 +70,19 @@ onButton.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Close GUI behavior
+-- Reset toggle button
+resetButton.MouseButton1Click:Connect(function()
+	resetEnabled = not resetEnabled
+	if resetEnabled then
+		resetButton.Text = "Reset: ON"
+		resetButton.BackgroundColor3 = Color3.fromRGB(120, 0, 120)
+	else
+		resetButton.Text = "Reset: OFF"
+		resetButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	end
+end)
+
+-- Close GUI
 closeButton.MouseButton1Click:Connect(function()
 	gui:Destroy()
 end)
@@ -68,29 +93,37 @@ task.spawn(function()
 		if isOn and teleportLoopRunning then
 			local targetBoxesFolder = workspace:FindFirstChild("TargetBoxes")
 			if targetBoxesFolder then
-				local targets = {}
-				for _, targetBox in ipairs(targetBoxesFolder:GetChildren()) do
-					if targetBox:IsA("Model") and targetBox.Name == "TargetBox" then
-						table.insert(targets, targetBox)
+				local validTargets = {}
+				for _, target in ipairs(targetBoxesFolder:GetChildren()) do
+					if target:IsA("Model") and target.Name == "TargetBox" and target:FindFirstChild("Head") then
+						table.insert(validTargets, target)
 					end
 				end
 
-				if #targets > 0 then
-					local randomTarget = targets[math.random(1, #targets)]
+				if #validTargets > 0 then
+					local randomTarget = validTargets[math.random(1, #validTargets)]
 					local head = randomTarget:FindFirstChild("Head")
-
 					local character = player.Character or player.CharacterAdded:Wait()
 					local hrp = character:FindFirstChild("HumanoidRootPart")
 
 					if head and hrp then
-						local targetPos = head.Position + Vector3.new(0, 10, 0)
 						pcall(function()
-							hrp.CFrame = CFrame.new(targetPos)
+							hrp.CFrame = CFrame.new(head.Position + Vector3.new(0, 10, 0))
 						end)
 					end
 				end
 			end
 		end
 		task.wait(0.5)
+	end
+end)
+
+-- Reset loop every 300 seconds (if enabled)
+task.spawn(function()
+	while true do
+		task.wait(300)
+		if resetEnabled then
+			player:LoadCharacter()
+		end
 	end
 end)
