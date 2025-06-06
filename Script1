@@ -2,39 +2,65 @@ local player = game.Players.LocalPlayer
 local teleportLoopRunning = false
 local isOn = false
 
--- Create ScreenGui
+-- Create the main ScreenGui
 local gui = Instance.new("ScreenGui")
 gui.Name = "TeleportGui"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Function to create styled, draggable button
-local function createButton(name, position, color, text, textSize)
-	local button = Instance.new("TextButton")
-	button.Name = name
-	button.Size = UDim2.new(0, 100, 0, 50)
-	button.Position = position
-	button.BackgroundColor3 = color
-	button.TextColor3 = Color3.new(1, 1, 1)
-	button.Font = Enum.Font.GothamBold
-	button.TextSize = textSize or 20
-	button.Text = text
-	button.AutoButtonColor = true
-	button.Parent = gui
+-- Create the main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 70)
+frame.Position = UDim2.new(0, 100, 0, 100)
+frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+frame.Parent = gui
 
-	local drag = Instance.new("UIDragDetector")
-	drag.Parent = button
+-- Make the frame draggable
+local drag = Instance.new("UIDragDetector")
+drag.Parent = frame
 
-	return button
-end
+-- Create ON/OFF button inside the frame
+local onButton = Instance.new("TextButton")
+onButton.Name = "OnButton"
+onButton.Size = UDim2.new(0, 100, 0, 50)
+onButton.Position = UDim2.new(0, 0, 0, 10)
+onButton.BackgroundColor3 = Color3.new(1, 0, 0)
+onButton.TextColor3 = Color3.new(1, 1, 1)
+onButton.Font = Enum.Font.GothamBold
+onButton.TextSize = 20
+onButton.Text = "OFF"
+onButton.Parent = frame
 
--- Create ON/OFF toggle button
-local onButton = createButton("OnButton", UDim2.new(0, 100, 0, 100), Color3.new(1, 0, 0), "OFF")
-
--- Create styled 'X' close button
-local closeButton = createButton("DestroyButton", UDim2.new(0, 210, 0, 100), Color3.fromRGB(40, 40, 40), "X", 26)
+-- Create CLOSE ("X") button inside the frame
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
 closeButton.Size = UDim2.new(0, 50, 0, 50)
+closeButton.Position = UDim2.new(0, 110, 0, 10)
+closeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 closeButton.TextColor3 = Color3.new(1, 0.3, 0.3)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 24
+closeButton.Text = "X"
+closeButton.Parent = frame
+
+-- Toggle ON/OFF behavior
+onButton.MouseButton1Click:Connect(function()
+	isOn = not isOn
+	teleportLoopRunning = isOn
+
+	if isOn then
+		onButton.Text = "ON"
+		onButton.BackgroundColor3 = Color3.new(0, 1, 0)
+	else
+		onButton.Text = "OFF"
+		onButton.BackgroundColor3 = Color3.new(1, 0, 0)
+	end
+end)
+
+-- Close GUI behavior
+closeButton.MouseButton1Click:Connect(function()
+	gui:Destroy()
+end)
 
 -- Teleport loop
 task.spawn(function()
@@ -54,7 +80,7 @@ task.spawn(function()
 					local head = randomTarget:FindFirstChild("Head")
 
 					local character = player.Character or player.CharacterAdded:Wait()
-					local hrp = character:WaitForChild("HumanoidRootPart", 3)
+					local hrp = character:FindFirstChild("HumanoidRootPart")
 
 					if head and hrp then
 						local targetPos = head.Position + Vector3.new(0, 10, 0)
@@ -67,23 +93,4 @@ task.spawn(function()
 		end
 		task.wait(0.5)
 	end
-end)
-
--- Toggle teleporting
-onButton.MouseButton1Click:Connect(function()
-	isOn = not isOn
-	teleportLoopRunning = isOn
-
-	if isOn then
-		onButton.Text = "ON"
-		onButton.BackgroundColor3 = Color3.new(0, 1, 0)
-	else
-		onButton.Text = "OFF"
-		onButton.BackgroundColor3 = Color3.new(1, 0, 0)
-	end
-end)
-
--- Close button destroys GUI
-closeButton.MouseButton1Click:Connect(function()
-	gui:Destroy()
 end)
