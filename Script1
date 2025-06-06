@@ -8,15 +8,18 @@ gui.Name = "TeleportGui"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Function to make a draggable button
-local function createButton(name, position, color, text)
+-- Function to create styled, draggable button
+local function createButton(name, position, color, text, textSize)
 	local button = Instance.new("TextButton")
 	button.Name = name
 	button.Size = UDim2.new(0, 100, 0, 50)
 	button.Position = position
 	button.BackgroundColor3 = color
 	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = textSize or 20
 	button.Text = text
+	button.AutoButtonColor = true
 	button.Parent = gui
 
 	local drag = Instance.new("UIDragDetector")
@@ -25,13 +28,15 @@ local function createButton(name, position, color, text)
 	return button
 end
 
--- Create On button
+-- Create ON/OFF toggle button
 local onButton = createButton("OnButton", UDim2.new(0, 100, 0, 100), Color3.new(1, 0, 0), "OFF")
 
--- Create Off (destroy) button
-local destroyButton = createButton("DestroyButton", UDim2.new(0, 210, 0, 100), Color3.new(0.2, 0.2, 0.2), "X")
+-- Create styled 'X' close button
+local closeButton = createButton("DestroyButton", UDim2.new(0, 210, 0, 100), Color3.fromRGB(40, 40, 40), "X", 26)
+closeButton.Size = UDim2.new(0, 50, 0, 50)
+closeButton.TextColor3 = Color3.new(1, 0.3, 0.3)
 
--- Teleport loop function
+-- Teleport loop
 task.spawn(function()
 	while true do
 		if isOn and teleportLoopRunning then
@@ -64,7 +69,7 @@ task.spawn(function()
 	end
 end)
 
--- Toggle on/off
+-- Toggle teleporting
 onButton.MouseButton1Click:Connect(function()
 	isOn = not isOn
 	teleportLoopRunning = isOn
@@ -78,7 +83,7 @@ onButton.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Destroy GUI
-destroyButton.MouseButton1Click:Connect(function()
+-- Close button destroys GUI
+closeButton.MouseButton1Click:Connect(function()
 	gui:Destroy()
 end)
