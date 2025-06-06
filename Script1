@@ -1,104 +1,26 @@
-local player = game.Players.LocalPlayer
-local uis = game:GetService("UserInputService")
-
--- Create GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "TeleportGui"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
-
--- Function to create a draggable button
-local function createDraggableButton(name, size, pos, text, bgColor)
-	local btn = Instance.new("TextButton")
-	btn.Name = name
-	btn.Size = size
-	btn.Position = pos
-	btn.Text = text
-	btn.Font = Enum.Font.SourceSansBold
-	btn.TextSize = 20
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.BackgroundColor3 = bgColor
-	btn.Parent = gui
-	btn.Active = true
-	btn.Draggable = true  -- Just use Draggable for simplicity
-
-	return btn
-end
-
-local toggleBtn = createDraggableButton(
-	"ToggleButton",
-	UDim2.new(0, 120, 0, 50),
-	UDim2.new(0.05, 0, 0.1, 0),
-	"OFF",
-	Color3.fromRGB(200, 0, 0)
-)
-
-local closeBtn = createDraggableButton(
-	"CloseButton",
-	UDim2.new(0, 80, 0, 50),
-	UDim2.new(0.05, 130, 0.1, 0),
-	"Close",
-	Color3.fromRGB(80, 80, 80)
-)
-
-local isOn = false
-local teleportLoopRunning = false
-
-local function updateToggleButton()
-	if isOn then
-		toggleBtn.Text = "ON"
-		toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-	else
-		toggleBtn.Text = "OFF"
-		toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-	end
-end
-
--- Teleport loop
-local function teleportLoop()
-	teleportLoopRunning = true
-	while isOn and teleportLoopRunning do
-		local targetBoxesFolder = workspace:FindFirstChild("TargetBoxes")
-		if targetBoxesFolder then
-			local targets = {}
-			for _, targetBox in ipairs(targetBoxesFolder:GetChildren()) do
-				if targetBox:IsA("Model") and targetBox.Name == "TargetBox" then
-					table.insert(targets, targetBox)
-				end
-			end
-
-			if #targets > 0 then
-				local randomTarget = targets[math.random(1, #targets)]
-				local head = randomTarget:FindFirstChild("Head")
-				local character = player.Character or player.CharacterAdded:Wait()
-				local hrp = character:FindFirstChild("HumanoidRootPart")
-
-				if head and hrp then
-					local targetPos = head.Position + Vector3.new(0, 10, 0)
-					hrp.CFrame = CFrame.new(targetPos)
-				end
+while isOn and teleportLoopRunning do
+	local targetBoxesFolder = workspace:FindFirstChild("TargetBoxes")
+	if targetBoxesFolder then
+		local targets = {}
+		for _, targetBox in ipairs(targetBoxesFolder:GetChildren()) do
+			if targetBox:IsA("Model") and targetBox.Name == "TargetBox" then
+				table.insert(targets, targetBox)
 			end
 		end
-		task.wait(0.5)
+
+		if #targets > 0 then
+			local randomTarget = targets[math.random(1, #targets)]
+			local head = randomTarget:FindFirstChild("Head")
+			local character = player.Character or player.CharacterAdded:Wait()
+			local hrp = character:WaitForChild("HumanoidRootPart", 3)
+
+			if head and hrp then
+				local targetPos = head.Position + Vector3.new(0, 10, 0)
+				pcall(function()
+					hrp.CFrame = CFrame.new(targetPos)
+				end)
+			end
+		end
 	end
-	teleportLoopRunning = false
+	task.wait(0.5)
 end
-
--- Toggle button logic
-toggleBtn.MouseButton1Click:Connect(function()
-	isOn = not isOn
-	updateToggleButton()
-
-	if isOn then
-		task.spawn(teleportLoop)
-	else
-		teleportLoopRunning = false
-	end
-end)
-
--- Close button
-closeBtn.MouseButton1Click:Connect(function()
-	gui:Destroy()
-end)
-
-updateToggleButton()
