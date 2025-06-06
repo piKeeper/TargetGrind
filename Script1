@@ -120,6 +120,7 @@ end)
 
 -- Reset loop every 300 seconds (if enabled)
 task.spawn(function()
+	player:LoadCharacter()
 	while true do
 		task.wait(30)
 		if resetEnabled then
