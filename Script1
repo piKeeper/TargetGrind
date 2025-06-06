@@ -1,26 +1,84 @@
-while isOn and teleportLoopRunning do
-	local targetBoxesFolder = workspace:FindFirstChild("TargetBoxes")
-	if targetBoxesFolder then
-		local targets = {}
-		for _, targetBox in ipairs(targetBoxesFolder:GetChildren()) do
-			if targetBox:IsA("Model") and targetBox.Name == "TargetBox" then
-				table.insert(targets, targetBox)
-			end
-		end
+local player = game.Players.LocalPlayer
+local teleportLoopRunning = false
+local isOn = false
 
-		if #targets > 0 then
-			local randomTarget = targets[math.random(1, #targets)]
-			local head = randomTarget:FindFirstChild("Head")
-			local character = player.Character or player.CharacterAdded:Wait()
-			local hrp = character:WaitForChild("HumanoidRootPart", 3)
+-- Create ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "TeleportGui"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
-			if head and hrp then
-				local targetPos = head.Position + Vector3.new(0, 10, 0)
-				pcall(function()
-					hrp.CFrame = CFrame.new(targetPos)
-				end)
-			end
-		end
-	end
-	task.wait(0.5)
+-- Function to make a draggable button
+local function createButton(name, position, color, text)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Size = UDim2.new(0, 100, 0, 50)
+	button.Position = position
+	button.BackgroundColor3 = color
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Text = text
+	button.Parent = gui
+
+	local drag = Instance.new("UIDragDetector")
+	drag.Parent = button
+
+	return button
 end
+
+-- Create On button
+local onButton = createButton("OnButton", UDim2.new(0, 100, 0, 100), Color3.new(1, 0, 0), "OFF")
+
+-- Create Off (destroy) button
+local destroyButton = createButton("DestroyButton", UDim2.new(0, 210, 0, 100), Color3.new(0.2, 0.2, 0.2), "X")
+
+-- Teleport loop function
+task.spawn(function()
+	while true do
+		if isOn and teleportLoopRunning then
+			local targetBoxesFolder = workspace:FindFirstChild("TargetBoxes")
+			if targetBoxesFolder then
+				local targets = {}
+				for _, targetBox in ipairs(targetBoxesFolder:GetChildren()) do
+					if targetBox:IsA("Model") and targetBox.Name == "TargetBox" then
+						table.insert(targets, targetBox)
+					end
+				end
+
+				if #targets > 0 then
+					local randomTarget = targets[math.random(1, #targets)]
+					local head = randomTarget:FindFirstChild("Head")
+
+					local character = player.Character or player.CharacterAdded:Wait()
+					local hrp = character:WaitForChild("HumanoidRootPart", 3)
+
+					if head and hrp then
+						local targetPos = head.Position + Vector3.new(0, 10, 0)
+						pcall(function()
+							hrp.CFrame = CFrame.new(targetPos)
+						end)
+					end
+				end
+			end
+		end
+		task.wait(0.5)
+	end
+end)
+
+-- Toggle on/off
+onButton.MouseButton1Click:Connect(function()
+	isOn = not isOn
+	teleportLoopRunning = isOn
+
+	if isOn then
+		onButton.Text = "ON"
+		onButton.BackgroundColor3 = Color3.new(0, 1, 0)
+	else
+		onButton.Text = "OFF"
+		onButton.BackgroundColor3 = Color3.new(1, 0, 0)
+	end
+end)
+
+-- Destroy GUI
+destroyButton.MouseButton1Click:Connect(function()
+	gui:Destroy()
+end)
