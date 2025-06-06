@@ -1,65 +1,96 @@
 local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
 local uis = game:GetService("UserInputService")
 
--- GUI Setup
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+-- Create ScreenGui
 local gui = Instance.new("ScreenGui")
 gui.Name = "ToggleGui"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
-local button = Instance.new("TextButton")
-button.Name = "ToggleButton"
-button.Size = UDim2.new(0, 100, 0, 40)
-button.Position = UDim2.new(0.1, 0, 0.1, 0)
-button.TextSize = 20
-button.Font = Enum.Font.SourceSansBold
-button.TextColor3 = Color3.new(1, 1, 1)
-button.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-button.Text = "OFF"
-button.Parent = gui
-button.Active = true
+-- Helper function to create draggable buttons
+local function createDraggableButton(name, size, pos, text, bgColor)
+	local btn = Instance.new("TextButton")
+	btn.Name = name
+	btn.Size = size
+	btn.Position = pos
+	btn.Text = text
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 20
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.BackgroundColor3 = bgColor
+	btn.Parent = gui
+	btn.Active = true
 
--- Dragging
-local dragging = false
-local dragStart, startPos
+	-- Drag logic
+	local dragging, dragInput, dragStart, startPos
 
-button.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = button.Position
-	end
-end)
-
-button.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+	local function update(input)
 		local delta = input.Position - dragStart
-		button.Position = UDim2.new(
+		btn.Position = UDim2.new(
 			startPos.X.Scale, startPos.X.Offset + delta.X,
 			startPos.Y.Scale, startPos.Y.Offset + delta.Y
 		)
 	end
-end)
 
-button.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
-end)
+	btn.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = btn.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
 
--- Toggle Logic
+	btn.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			dragInput = input
+		end
+	end)
+
+	uis.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			update(input)
+		end
+	end)
+
+	return btn
+end
+
+-- Create Toggle Button
+local toggleBtn = createDraggableButton(
+	"ToggleButton",
+	UDim2.new(0, 100, 0, 40),
+	UDim2.new(0.1, 0, 0.1, 0),
+	"OFF",
+	Color3.fromRGB(200, 0, 0)
+)
+
+-- Create Close Button
+local closeBtn = createDraggableButton(
+	"CloseButton",
+	UDim2.new(0, 60, 0, 40),
+	UDim2.new(0.1, 110, 0.1, 0),
+	"Close",
+	Color3.fromRGB(80, 80, 80)
+)
+
 local isOn = false
 local loopRunning = false
 
-local function updateButton()
+local function updateToggleButton()
 	if isOn then
-		button.Text = "ON"
-		button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+		toggleBtn.Text = "ON"
+		toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
 	else
-		button.Text = "OFF"
-		button.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+		toggleBtn.Text = "OFF"
+		toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 	end
 end
 
@@ -70,7 +101,6 @@ local function getEquippedTool()
 	end
 end
 
--- Simulate clicks using tool:Activate()
 local function simulateClick()
 	local tool = getEquippedTool()
 	if tool then
@@ -78,22 +108,30 @@ local function simulateClick()
 	end
 end
 
--- Loop through TargetBoxes
+local function teleportAndClick(box)
+	if not hrp or not box or not box.Parent then return end
+	local targetHead = box:FindFirstChild("Head")
+	if not targetHead then return end
+	
+	local targetPos = targetHead.Position + Vector3.new(0, 5, 0)
+	local lookDownCFrame = CFrame.new(targetPos, targetPos + Vector3.new(0, -1, 0))
+	hrp.CFrame = lookDownCFrame
+	
+	while box.Parent and isOn do
+		simulateClick()
+		task.wait(0.2)
+	end
+end
+
 local function startTeleportLoop()
 	loopRunning = true
 	while isOn and loopRunning do
 		local boxesFolder = workspace:FindFirstChild("TargetBoxes")
 		if boxesFolder then
 			for _, box in ipairs(boxesFolder:GetChildren()) do
-				if box.Name == "TargetBox" and box:FindFirstChild("Head") then
-					-- Teleport player
-					hrp.CFrame = box.Head.CFrame
-
-					-- Click until box is destroyed or turned off
-					while box.Parent == boxesFolder and isOn do
-						simulateClick()
-						task.wait(0.2)
-					end
+				if box.Name == "TargetBox" then
+					teleportAndClick(box)
+					if not isOn then break end
 				end
 			end
 		end
@@ -101,18 +139,21 @@ local function startTeleportLoop()
 	end
 end
 
--- Button click
-button.MouseButton1Click:Connect(function()
+toggleBtn.MouseButton1Click:Connect(function()
 	isOn = not isOn
-	updateButton()
-
+	updateToggleButton()
+	
 	if isOn then
 		hrp.Anchored = true
-		startTeleportLoop()
+		task.spawn(startTeleportLoop)
 	else
 		loopRunning = false
 		hrp.Anchored = false
 	end
 end)
 
-updateButton()
+closeBtn.MouseButton1Click:Connect(function()
+	gui:Destroy()
+end)
+
+updateToggleButton()
