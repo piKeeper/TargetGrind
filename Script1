@@ -1,5 +1,7 @@
 local player = game.Players.LocalPlayer
 local uis = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+local camera = workspace.CurrentCamera
 
 local char = player.Character or player.CharacterAdded:Wait()
 local hrp = char:WaitForChild("HumanoidRootPart")
@@ -10,7 +12,6 @@ gui.Name = "ToggleGui"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Helper function to create draggable buttons
 local function createDraggableButton(name, size, pos, text, bgColor)
 	local btn = Instance.new("TextButton")
 	btn.Name = name
@@ -24,7 +25,6 @@ local function createDraggableButton(name, size, pos, text, bgColor)
 	btn.Parent = gui
 	btn.Active = true
 
-	-- Drag logic
 	local dragging, dragInput, dragStart, startPos
 
 	local function update(input)
@@ -63,7 +63,6 @@ local function createDraggableButton(name, size, pos, text, bgColor)
 	return btn
 end
 
--- Create Toggle Button
 local toggleBtn = createDraggableButton(
 	"ToggleButton",
 	UDim2.new(0, 100, 0, 40),
@@ -72,7 +71,6 @@ local toggleBtn = createDraggableButton(
 	Color3.fromRGB(200, 0, 0)
 )
 
--- Create Close Button
 local closeBtn = createDraggableButton(
 	"CloseButton",
 	UDim2.new(0, 60, 0, 40),
@@ -114,9 +112,12 @@ local function teleportAndClick(box)
 	local targetHead = box:FindFirstChild("Head")
 	if not targetHead then return end
 	
-	local targetPos = targetHead.Position + Vector3.new(0, 5, 0)
-	local lookDownCFrame = CFrame.new(targetPos, targetPos + Vector3.new(0, -1, 0))
-	hrp.CFrame = lookDownCFrame
+	local targetPos = targetHead.Position + Vector3.new(0, 10, 0)
+	hrp.CFrame = CFrame.new(targetPos)
+
+	-- Make camera look straight down
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.CFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position - Vector3.new(0, 1, 0))
 	
 	activateLoopRunning = true
 	while box.Parent and isOn and activateLoopRunning do
@@ -124,6 +125,9 @@ local function teleportAndClick(box)
 		task.wait(0.2)
 	end
 	activateLoopRunning = false
+
+	-- Restore camera to default after done
+	camera.CameraType = Enum.CameraType.Custom
 end
 
 local function startTeleportLoop()
@@ -153,6 +157,9 @@ toggleBtn.MouseButton1Click:Connect(function()
 		loopRunning = false
 		activateLoopRunning = false  -- stops tool:Activate()
 		hrp.Anchored = false
+		
+		-- Reset camera just in case
+		camera.CameraType = Enum.CameraType.Custom
 	end
 end)
 
