@@ -91,17 +91,17 @@ local function updateToggleButton()
 	end
 end
 
-local function getEquippedTool()
-	local character = player.Character
-	if character then
-		return character:FindFirstChildOfClass("Tool")
-	end
-end
-
 local function simulateClick()
-	local tool = getEquippedTool()
-	if tool then
-		tool:Activate()
+	-- Instead of tool:Activate(), fire the ShootButton's MouseButton1Click event
+	local blasterGui = player.PlayerGui:FindFirstChild("BlasterTouchGui")
+	if blasterGui then
+		local buttonsFolder = blasterGui:FindFirstChild("Buttons")
+		if buttonsFolder then
+			local shootBtn = buttonsFolder:FindFirstChild("ShootButton")
+			if shootBtn and shootBtn:IsA("GuiButton") then
+				shootBtn.MouseButton1Click:Fire()
+			end
+		end
 	end
 end
 
@@ -150,7 +150,7 @@ toggleBtn.MouseButton1Click:Connect(function()
 		task.spawn(startTeleportLoop)
 	else
 		loopRunning = false
-		activateLoopRunning = false  -- stops tool:Activate()
+		activateLoopRunning = false  -- stops clicking
 		hrp.Anchored = false
 	end
 end)
